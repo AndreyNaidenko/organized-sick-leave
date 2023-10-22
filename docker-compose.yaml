@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:latest
+    ports:
+      - ${POSTGRES_PORT}:5432
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+        
+  server:
+    build: ./api
+    container_name: api
+    restart: unless-stopped
+    links:
+      - postgresdb
+    depends_on:
+      postgresdb:
+        condition: service_healthy
+    ports:
+      - '32769:80'
+      - '32768:443'
+
+  client:
+    build: ./ui
+    container_name: ui
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    depends_on:
+      - server
+
+volumes:
+  postgresql-data:
